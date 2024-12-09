@@ -22,13 +22,8 @@ class ActionSpace(ABC):
         Class containing all the parameters that can be needed by the ActionSpace subclasses
         """
 
-        def __init__(
-            self,
-            max_heavy_atoms=None,
-            accepted_atoms=None,
-            accepted_structures=None,
-            accepted_substitutions=None,
-        ):
+        def __init__(self, max_heavy_atoms=None, accepted_atoms=None, accepted_structures=None,
+                     accepted_substitutions=None):
             self.max_heavy_atoms = max_heavy_atoms
             self.accepted_atoms = accepted_atoms
             self.accepted_structures = accepted_structures
@@ -78,14 +73,9 @@ class ActionSpace(ABC):
         Executing the action identified by the given action id to the given molecular graph
         :return: boolean value representing whether the action is terminal
         """
-        if (
-            self.check_validity
-            and not self.get_valid_actions_mask(parameters, qu_mol_graph)[action_id]
-        ):
-            raise Exception(
-                "Trying to apply invalid action : "
-                + self.action_to_str(action_id, parameters, qu_mol_graph)
-            )
+        if self.check_validity and not self.get_valid_actions_mask(parameters, qu_mol_graph)[action_id]:
+            raise Exception("Trying to apply invalid action : " + self.action_to_str(action_id, parameters,
+                                                                                     qu_mol_graph))
 
     @abstractmethod
     def action_to_str(self, action_id, parameters, qu_mol_graph):
@@ -130,12 +120,9 @@ class CutAtomV2ActionSpace(ActionSpace):
 
             if bonds_count == 2:
                 # Action if the two remaining atoms do not share a bond and have no formal charges
-                action_space[i] = (
-                    qu_mol_graph.get_bond_type_num(bonds_to[0], bonds_to[1]) == 0
-                    and formal_charge_vector[0] == 0
-                    and formal_charge_vector[1] == 0
-                    and qu_mol_graph.get_atom_mutability(i)
-                )
+                action_space[i] = qu_mol_graph.get_bond_type_num(bonds_to[0], bonds_to[1]) == 0 and \
+                                  formal_charge_vector[0] == 0 and formal_charge_vector[1] == 0 and \
+                                  qu_mol_graph.get_atom_mutability(i)
 
         return action_space
 
@@ -147,14 +134,10 @@ class CutAtomV2ActionSpace(ActionSpace):
         return parameters.max_heavy_atoms
 
     def execute_action(self, action_id, parameters, qu_mol_graph):
-        super(CutAtomV2ActionSpace, self).execute_action(
-            action_id, parameters, qu_mol_graph
-        )
+        super(CutAtomV2ActionSpace, self).execute_action(action_id, parameters, qu_mol_graph)
 
         # Extracting neigbours of atom to be cut
-        neighbours = np.argwhere(
-            qu_mol_graph.get_adjacency_matrix()[action_id] == 1
-        ).flatten()
+        neighbours = np.argwhere(qu_mol_graph.get_adjacency_matrix()[action_id] == 1).flatten()
 
         i, j = tuple(list(neighbours))
 
@@ -180,20 +163,9 @@ class CutAtomV2ActionSpace(ActionSpace):
 
         i, j = tuple(list(neighbours))
 
-        return (
-            "Cutting atom "
-            + str(action_id)
-            + " of type "
-            + qu_mol_graph.get_atom_type(action_id)
-            + " bond to atom "
-            + str(i)
-            + " of type "
-            + qu_mol_graph.get_atom_type(i)
-            + " and atom "
-            + str(j)
-            + " of type "
-            + qu_mol_graph.get_atom_type(j)
-        )
+        return "Cutting atom " + str(action_id) + " of type " + qu_mol_graph.get_atom_type(action_id) + \
+               " bond to atom " + str(i) + " of type " + qu_mol_graph.get_atom_type(i) + " and atom " + str(j) + \
+               " of type " + qu_mol_graph.get_atom_type(j)
 
 
 class InsertCarbonAtomV2ActionSpace(ActionSpace):
@@ -211,9 +183,7 @@ class InsertCarbonAtomV2ActionSpace(ActionSpace):
     def get_valid_actions_mask(self, parameters, qu_mol_graph):
 
         # Action space validity initialization
-        action_space = np.full(
-            (parameters.max_heavy_atoms, parameters.max_heavy_atoms), False
-        )
+        action_space = np.full((parameters.max_heavy_atoms, parameters.max_heavy_atoms), False)
 
         formal_charge_vector = qu_mol_graph.get_formal_charge_vector()
 
@@ -224,15 +194,9 @@ class InsertCarbonAtomV2ActionSpace(ActionSpace):
             # is mutable
             for i in range(qu_mol_graph.get_n_atoms()):
                 for j in range(i + 1, qu_mol_graph.get_n_atoms()):
-                    action_space[i][j] = (
-                        qu_mol_graph.get_bond_type_num(i, j) > 0
-                        and formal_charge_vector[i] == 0
-                        and formal_charge_vector[j] == 0
-                        and (
-                            qu_mol_graph.get_atom_mutability(i)
-                            or qu_mol_graph.get_atom_mutability(j)
-                        )
-                    )
+                    action_space[i][j] = qu_mol_graph.get_bond_type_num(i, j) > 0 and formal_charge_vector[i] == 0 and \
+                                         formal_charge_vector[j] == 0 and (qu_mol_graph.get_atom_mutability(i) or
+                                                                           qu_mol_graph.get_atom_mutability(j))
 
         # Returning the values of the upper triangular matrix
         return action_space[np.triu_indices(parameters.max_heavy_atoms, k=1)]
@@ -242,10 +206,8 @@ class InsertCarbonAtomV2ActionSpace(ActionSpace):
         Converting the id of action to the indices of both atoms involved
         @return:
         """
-        return (
-            np.triu_indices(parameters.max_heavy_atoms, k=1)[0][action_id],
-            np.triu_indices(parameters.max_heavy_atoms, k=1)[1][action_id],
-        )
+        return np.triu_indices(parameters.max_heavy_atoms, k=1)[0][action_id], \
+               np.triu_indices(parameters.max_heavy_atoms, k=1)[1][action_id]
 
     def get_action_expl(self, action_id, parameters, qu_mol_graph):
 
@@ -264,14 +226,12 @@ class InsertCarbonAtomV2ActionSpace(ActionSpace):
         return parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2
 
     def execute_action(self, action_id, parameters, qu_mol_graph):
-        super(InsertCarbonAtomV2ActionSpace, self).execute_action(
-            action_id, parameters, qu_mol_graph
-        )
+        super(InsertCarbonAtomV2ActionSpace, self).execute_action(action_id, parameters, qu_mol_graph)
 
         # Mapping the action id on a complete matrix
-        matrix_id = np.arange(parameters.max_heavy_atoms**2).reshape(
-            parameters.max_heavy_atoms, parameters.max_heavy_atoms
-        )[np.triu_indices(parameters.max_heavy_atoms, k=1)][action_id]
+        matrix_id = \
+            np.arange(parameters.max_heavy_atoms ** 2).reshape(parameters.max_heavy_atoms, parameters.max_heavy_atoms)[
+                np.triu_indices(parameters.max_heavy_atoms, k=1)][action_id]
 
         # Extracting the coordinates on the complete matrix of the given action id
         i = int(matrix_id % parameters.max_heavy_atoms)
@@ -301,26 +261,16 @@ class InsertCarbonAtomV2ActionSpace(ActionSpace):
     def action_to_str(self, action_id, parameters, qu_mol_graph):
 
         # Mapping the action id on a complete matrix
-        matrix_id = np.arange(parameters.max_heavy_atoms**2).reshape(
-            parameters.max_heavy_atoms, parameters.max_heavy_atoms
-        )[np.triu_indices(parameters.max_heavy_atoms, k=1)][action_id]
+        matrix_id = np.arange(parameters.max_heavy_atoms ** 2).reshape(parameters.max_heavy_atoms,
+                                                                       parameters.max_heavy_atoms)[
+            np.triu_indices(parameters.max_heavy_atoms, k=1)][action_id]
 
         # Extracting the coordinates on the complete matrix of the given action id
         i = int(matrix_id % parameters.max_heavy_atoms)
         j = int(matrix_id // parameters.max_heavy_atoms)
 
-        return (
-            "Insert simple bond between atoms of ids "
-            + str(i)
-            + " ("
-            + qu_mol_graph.get_atom_type(i)
-            + ")"
-            + " and "
-            + str(j)
-            + " ("
-            + qu_mol_graph.get_atom_type(j)
-            + ")"
-        )
+        return "Insert simple bond between atoms of ids " + str(i) + " (" + qu_mol_graph.get_atom_type(
+            i) + ")" + " and " + str(j) + " (" + qu_mol_graph.get_atom_type(j) + ")"
 
 
 class AddAtomActionSpace(ActionSpace):
@@ -378,22 +328,16 @@ class AddAtomActionSpace(ActionSpace):
         if self.allow_bonding:
 
             # Action space validity initialization
-            action_space = np.full(
-                (parameters.max_heavy_atoms + 1, len(parameters.accepted_atoms)), False
-            )
+            action_space = np.full((parameters.max_heavy_atoms + 1, len(parameters.accepted_atoms)), False)
 
             # Computing the possibility of adding an atom without connexion
             if self.keep_connected:
                 # Possibility of adding an unconnected atom iff the molecular graph is empty
-                action_space[0] = np.full(
-                    (len(parameters.accepted_atoms),), qu_mol_graph.get_n_atoms() == 0
-                )
+                action_space[0] = np.full((len(parameters.accepted_atoms),), qu_mol_graph.get_n_atoms() == 0)
             else:
                 # Possibility of adding an unconnected atom iff the molecular graph is not full
-                action_space[0] = np.full(
-                    (len(parameters.accepted_atoms),),
-                    qu_mol_graph.get_n_atoms() < parameters.max_heavy_atoms,
-                )
+                action_space[0] = np.full((len(parameters.accepted_atoms),),
+                                          qu_mol_graph.get_n_atoms() < parameters.max_heavy_atoms)
 
             # Computing the possibility of adding an atom with a connexion
             if qu_mol_graph.get_n_atoms() < parameters.max_heavy_atoms:
@@ -408,21 +352,15 @@ class AddAtomActionSpace(ActionSpace):
                 for i in range(0, qu_mol_graph.get_n_atoms()):
                     # The new atom can be bonded to the current atom if the current atom has free electrons left and if
                     # it has no formal charge
-                    action_space[i + 1] = np.full(
-                        (len(parameters.accepted_atoms),),
-                        free_electons_vect[i] >= 1 and formal_charges_vect[i] == 0,
-                    )
+                    action_space[i + 1] = np.full((len(parameters.accepted_atoms),),
+                                                  free_electons_vect[i] >= 1 and formal_charges_vect[i] == 0)
 
         else:
             # All atoms types are insertable iff. the current size of the molecular graph has not reached the limit
-            action_space = np.repeat(
-                qu_mol_graph.get_n_atoms() < parameters.max_heavy_atoms,
-                len(parameters.accepted_atoms),
-            )
+            action_space = np.repeat(qu_mol_graph.get_n_atoms() < parameters.max_heavy_atoms,
+                                     len(parameters.accepted_atoms))
 
-        return action_space.reshape(
-            -1,
-        )
+        return action_space.reshape(-1, )
 
     def get_action_space_size(self, parameters, qu_mol_graph):
 
@@ -436,9 +374,7 @@ class AddAtomActionSpace(ActionSpace):
             return len(parameters.accepted_atoms)
 
     def execute_action(self, action_id, parameters, qu_mol_graph):
-        super(AddAtomActionSpace, self).execute_action(
-            action_id, parameters, qu_mol_graph
-        )
+        super(AddAtomActionSpace, self).execute_action(action_id, parameters, qu_mol_graph)
 
         # Simple addition of the atom
         if action_id < len(parameters.accepted_atoms):
@@ -446,9 +382,7 @@ class AddAtomActionSpace(ActionSpace):
 
         # Adding the new atom with a bond to an existing one
         else:
-            atom_type = parameters.accepted_atoms[
-                action_id % len(parameters.accepted_atoms)
-            ]
+            atom_type = parameters.accepted_atoms[action_id % len(parameters.accepted_atoms)]
             to_atom_id = action_id // len(parameters.accepted_atoms) - 1
 
             # Adding the atom
@@ -471,21 +405,10 @@ class AddAtomActionSpace(ActionSpace):
 
     def action_to_str(self, action_id, parameters, qu_mol_graph):
 
-        dscr = "Add atom of type " + str(
-            parameters.accepted_atoms[action_id % len(parameters.accepted_atoms)]
-        )
+        dscr = "Add atom of type " + str(parameters.accepted_atoms[action_id % len(parameters.accepted_atoms)])
         if self.allow_bonding and action_id >= len(parameters.accepted_atoms):
-            dscr += (
-                " to atom of id "
-                + str(action_id // len(parameters.accepted_atoms) - 1)
-                + " ("
-                + str(
-                    qu_mol_graph.get_atom_type(
-                        action_id // len(parameters.accepted_atoms) - 1
-                    )
-                )
-                + ")"
-            )
+            dscr += " to atom of id " + str(action_id // len(parameters.accepted_atoms) - 1) + " (" + \
+                    str(qu_mol_graph.get_atom_type(action_id // len(parameters.accepted_atoms) - 1)) + ")"
         return dscr
 
 
@@ -524,9 +447,7 @@ class RemoveAtomActionSpace(ActionSpace):
             # Any atom can be removed if it is mutable and (if it has only one neighbour or if none of its bonds are
             # bridges)
             for i in range(qu_mol_graph.get_n_atoms()):
-                rm_atom_space_mask[i] = not articulation_points_vector[
-                    i
-                ] and qu_mol_graph.get_atom_mutability(i)
+                rm_atom_space_mask[i] = not articulation_points_vector[i] and qu_mol_graph.get_atom_mutability(i)
 
         else:
             # If keep_connected is set to False, all mutable atoms are removable
@@ -540,9 +461,7 @@ class RemoveAtomActionSpace(ActionSpace):
         return parameters.max_heavy_atoms
 
     def execute_action(self, action_id, parameters, qu_mol_graph):
-        super(RemoveAtomActionSpace, self).execute_action(
-            action_id, parameters, qu_mol_graph
-        )
+        super(RemoveAtomActionSpace, self).execute_action(action_id, parameters, qu_mol_graph)
 
         try:
             # Removing the atom
@@ -556,13 +475,7 @@ class RemoveAtomActionSpace(ActionSpace):
         return True
 
     def action_to_str(self, action_id, parameters, qu_mol_graph):
-        return (
-            "Remove atom of id "
-            + str(action_id)
-            + " ("
-            + qu_mol_graph.get_atom_type(action_id)
-            + ")"
-        )
+        return "Remove atom of id " + str(action_id) + " (" + qu_mol_graph.get_atom_type(action_id) + ")"
 
 
 class MoveFunctionalGroupActionSpace(ActionSpace):
@@ -581,26 +494,14 @@ class MoveFunctionalGroupActionSpace(ActionSpace):
         Converting the id of action to the indices of both atoms involved
         @return:
         """
-        return (
-            np.triu_indices(parameters.max_heavy_atoms, k=1)[0][
-                action_id // parameters.max_heavy_atoms
-            ],
-            np.triu_indices(parameters.max_heavy_atoms, k=1)[1][
-                action_id // parameters.max_heavy_atoms
-            ],
-        )
+        return np.triu_indices(parameters.max_heavy_atoms, k=1)[0][action_id // parameters.max_heavy_atoms], \
+               np.triu_indices(parameters.max_heavy_atoms, k=1)[1][action_id // parameters.max_heavy_atoms]
 
     def get_valid_actions_mask(self, parameters, qu_mol_graph):
 
         # Initialization of the action space
-        valid_action_space = np.full(
-            (
-                parameters.max_heavy_atoms,
-                parameters.max_heavy_atoms,
-                parameters.max_heavy_atoms,
-            ),
-            False,
-        )
+        valid_action_space = np.full((parameters.max_heavy_atoms, parameters.max_heavy_atoms,
+                                      parameters.max_heavy_atoms), False)
 
         # Extraction of the bridge matrix
         bridge_bond_matrix = qu_mol_graph.get_bridge_bonds_matrix()
@@ -611,15 +512,9 @@ class MoveFunctionalGroupActionSpace(ActionSpace):
 
                 # Functional group can be moved only if the bond is a bridge and none of the atoms has a formal charge
                 # and at least one atom is mutable
-                if (
-                    bridge_bond_matrix[i][j]
-                    and qu_mol_graph.get_formal_charge(i) == 0
-                    and qu_mol_graph.get_formal_charge(j) == 0
-                    and (
-                        qu_mol_graph.get_atom_mutability(i)
-                        or qu_mol_graph.get_atom_mutability(j)
-                    )
-                ):
+                if bridge_bond_matrix[i][j] and qu_mol_graph.get_formal_charge(i) == 0 and \
+                        qu_mol_graph.get_formal_charge(j) == 0 \
+                        and (qu_mol_graph.get_atom_mutability(i) or qu_mol_graph.get_atom_mutability(j)):
 
                     # Extracting the current bond type and the free electrons vector
                     bond_type_num = qu_mol_graph.get_bond_type_num(i, j)
@@ -630,22 +525,16 @@ class MoveFunctionalGroupActionSpace(ActionSpace):
                         if k != i and k != j:
                             # The functional group can be moved if the current atom has enough electrons left and has no
                             # formal charge
-                            valid_action_space[i][j][k] = (
-                                free_electrons_vector[k] >= bond_type_num
-                                and qu_mol_graph.get_formal_charge(k) == 0
-                            )
+                            valid_action_space[i][j][k] = free_electrons_vector[k] >= bond_type_num and \
+                                                          qu_mol_graph.get_formal_charge(k) == 0
 
-        return valid_action_space[
-            np.triu_indices(parameters.max_heavy_atoms, k=1)
-        ].flatten()
+        return valid_action_space[np.triu_indices(parameters.max_heavy_atoms, k=1)].flatten()
 
     def get_action_space_size(self, parameters, qu_mol_graph):
         """
         The action space size is the maximum number of bonds multiplied by the maximum number of atoms
         """
-        return (
-            parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2
-        ) * parameters.max_heavy_atoms
+        return (parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2) * parameters.max_heavy_atoms
 
     def get_action_expl(self, id_action, parameters, qu_mol_graph):
         return ""
@@ -665,9 +554,7 @@ class MoveFunctionalGroupActionSpace(ActionSpace):
         imput_adjacency_matrix[j][i] = False
 
         # Extracting the connected components with the bond removed
-        conn_components = list(
-            connected_components(nx.from_numpy_array(imput_adjacency_matrix))
-        )
+        conn_components = list(connected_components(nx.from_numpy_array(imput_adjacency_matrix)))
 
         # Selecting the atom from the initial bond to be bonded to k
         if i in conn_components[0]:
@@ -724,14 +611,9 @@ class RemoveGroupActionSpace(ActionSpace):
         Converting the id of action to the indices of both atoms involved
         @return:
         """
-        return (
-            action_id // parameters.max_heavy_atoms,
-            action_id % parameters.max_heavy_atoms,
-        )
+        return action_id // parameters.max_heavy_atoms, action_id % parameters.max_heavy_atoms
 
-    def _get_connected_component_after_removing_bond(
-        self, qu_mol_graph, bond_at_1, bond_at_2
-    ):
+    def _get_connected_component_after_removing_bond(self, qu_mol_graph, bond_at_1, bond_at_2):
         """
         Returning the connected component that contains that atom of index bond_at_1 if the bond between bond_at_1 and
         bond_at_2 was removed. The list of indices of the connected component is returned
@@ -757,9 +639,7 @@ class RemoveGroupActionSpace(ActionSpace):
     def get_valid_actions_mask(self, parameters, qu_mol_graph):
 
         # Initialization of the action space
-        valid_action_space = np.full(
-            (parameters.max_heavy_atoms, parameters.max_heavy_atoms), False
-        )
+        valid_action_space = np.full((parameters.max_heavy_atoms, parameters.max_heavy_atoms), False)
 
         # Extraction of the bridge matrix
         bridge_bond_matrix = qu_mol_graph.get_bridge_bonds_matrix()
@@ -770,27 +650,13 @@ class RemoveGroupActionSpace(ActionSpace):
 
                 # The group can be removed only if the bond is a bridge and none of the atoms has a formal charge
                 # and at least one atom is mutable
-                if (
-                    bridge_bond_matrix[i][j]
-                    and qu_mol_graph.get_formal_charge(i) == 0
-                    and qu_mol_graph.get_formal_charge(j) == 0
-                    and (
-                        qu_mol_graph.get_atom_mutability(i)
-                        or qu_mol_graph.get_atom_mutability(j)
-                    )
-                ):
+                if bridge_bond_matrix[i][j] and qu_mol_graph.get_formal_charge(i) == 0 and \
+                        qu_mol_graph.get_formal_charge(j) == 0 \
+                        and (qu_mol_graph.get_atom_mutability(i) or qu_mol_graph.get_atom_mutability(j)):
 
                     # Extracting the indices of both connected components if the current bond was removed
-                    connected_component_i = (
-                        self._get_connected_component_after_removing_bond(
-                            qu_mol_graph, i, j
-                        )
-                    )
-                    connected_component_j = (
-                        self._get_connected_component_after_removing_bond(
-                            qu_mol_graph, j, i
-                        )
-                    )
+                    connected_component_i = self._get_connected_component_after_removing_bond(qu_mol_graph, i, j)
+                    connected_component_j = self._get_connected_component_after_removing_bond(qu_mol_graph, j, i)
 
                     # If the self.only_remove_smallest_group option is set to True, only the smallest component can be
                     # removed. Otherwise, both parts of the bond can be removed
@@ -822,9 +688,7 @@ class RemoveGroupActionSpace(ActionSpace):
         i, j = self._action_id_to_atoms_idx(action_id, parameters)
 
         # Computing the indices of the atoms that are to be removed
-        atoms_to_remove_indices = self._get_connected_component_after_removing_bond(
-            qu_mol_graph, i, j
-        )
+        atoms_to_remove_indices = self._get_connected_component_after_removing_bond(qu_mol_graph, i, j)
 
         try:
 
@@ -852,12 +716,7 @@ class ChangeBondActionSpace(ActionSpace):
     Changing a bond from any type to any type among no bond, single, double, triple.
     """
 
-    def __init__(
-        self,
-        check_validity=True,
-        keep_connected=False,
-        prevent_removing_creating_bonds=False,
-    ):
+    def __init__(self, check_validity=True, keep_connected=False, prevent_removing_creating_bonds=False):
         """
         Changing the type of a bond
         :param check_validity: whether to check if the action is legal before application
@@ -878,27 +737,18 @@ class ChangeBondActionSpace(ActionSpace):
         @return:
         """
 
-        action_id_first_matrix_equivalence = action_id % (
-            parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2
-        )
+        action_id_first_matrix_equivalence = action_id % (parameters.max_heavy_atoms *
+                                                          (parameters.max_heavy_atoms - 1) // 2)
 
-        return (
-            np.triu_indices(parameters.max_heavy_atoms, k=1)[0][
-                action_id_first_matrix_equivalence
-            ],
-            np.triu_indices(parameters.max_heavy_atoms, k=1)[1][
-                action_id_first_matrix_equivalence
-            ],
-        )
+        return np.triu_indices(parameters.max_heavy_atoms, k=1)[0][action_id_first_matrix_equivalence], \
+               np.triu_indices(parameters.max_heavy_atoms, k=1)[1][action_id_first_matrix_equivalence]
 
     def _action_id_to_bond_to_form(self, action_id, parameters):
         """
         Converting the id of the action to the type of the bond to be formed
         """
 
-        return action_id // (
-            parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2
-        )
+        return action_id // (parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2)
 
     def get_action_expl(self, action_id, parameters, qu_mol_graph):
 
@@ -913,22 +763,12 @@ class ChangeBondActionSpace(ActionSpace):
         curr_bond_type_num = qu_mol_graph.get_bond_type_num(at1_idx, at2_idx)
         bond_to_form_type_num = self._action_id_to_bond_to_form(action_id, parameters)
 
-        return (
-            first_at_type
-            + ":"
-            + second_at_type
-            + ":"
-            + str(curr_bond_type_num)
-            + ":"
-            + str(bond_to_form_type_num)
-        )
+        return first_at_type + ":" + second_at_type + ":" + str(curr_bond_type_num) + ":" + str(bond_to_form_type_num)
 
     def get_valid_actions_mask(self, parameters, qu_mol_graph):
 
         # Add bond action space mask initialization as a (bond_type, max_heavy_atoms, max_heavy_atoms) matrix
-        add_bond_action_space_mask = np.full(
-            (4, parameters.max_heavy_atoms, parameters.max_heavy_atoms), False
-        )
+        add_bond_action_space_mask = np.full((4, parameters.max_heavy_atoms, parameters.max_heavy_atoms), False)
 
         # Extracting the vector of free electron for each atom
         free_electons_vect = qu_mol_graph.get_free_electrons_vector()
@@ -953,12 +793,8 @@ class ChangeBondActionSpace(ActionSpace):
 
                     delta_bond = bond_to_form - curr_bond
 
-                    formal_charge_ok = (
-                        formal_charge_vect[i] == 0 and formal_charge_vect[j] == 0
-                    )
-                    mutability_ok = qu_mol_graph.get_atom_mutability(
-                        i
-                    ) or qu_mol_graph.get_atom_mutability(j)
+                    formal_charge_ok = formal_charge_vect[i] == 0 and formal_charge_vect[j] == 0
+                    mutability_ok = qu_mol_graph.get_atom_mutability(i) or qu_mol_graph.get_atom_mutability(j)
 
                     # Bond decrement
                     # If keep connected is set to True, only bond that are not bridges can be completely removed.
@@ -967,23 +803,16 @@ class ChangeBondActionSpace(ActionSpace):
                     if delta_bond < 0:
 
                         # Checking if the prevent breaking bonds constraint is respected if set
-                        prevent_breaking_bonds_constraint_respected = (
-                            not self.prevent_removing_creating_bonds or bond_to_form > 0
-                        )
+                        prevent_breaking_bonds_constraint_respected = not self.prevent_removing_creating_bonds or bond_to_form > 0
 
                         if not self.keep_connected:
-                            add_bond_action_space_mask[bond_to_form][i][j] = (
-                                formal_charge_ok
-                                and mutability_ok
-                                and prevent_breaking_bonds_constraint_respected
-                            )
+                            add_bond_action_space_mask[bond_to_form][i][j] = formal_charge_ok and mutability_ok and \
+                                                                             prevent_breaking_bonds_constraint_respected
                         else:
-                            add_bond_action_space_mask[bond_to_form][i][j] = (
-                                (not bridge_matrix[i][j] or bond_to_form > 0)
-                                and formal_charge_ok
-                                and mutability_ok
-                                and prevent_breaking_bonds_constraint_respected
-                            )
+                            add_bond_action_space_mask[bond_to_form][i][j] = (not bridge_matrix[i][
+                                j] or bond_to_form > 0) \
+                                                                             and formal_charge_ok and mutability_ok and \
+                                                                             prevent_breaking_bonds_constraint_respected
 
                     # Bond increment
                     # Bond can be incremented of delta if each atom involved has at least delta free electrons
@@ -991,28 +820,16 @@ class ChangeBondActionSpace(ActionSpace):
                     elif delta_bond > 0:
 
                         # Checking if the prevent creating bonds constraint is respected if set
-                        prevent_breaking_bonds_constraint_respected = (
-                            not self.prevent_removing_creating_bonds or curr_bond > 0
-                        )
+                        prevent_breaking_bonds_constraint_respected = not self.prevent_removing_creating_bonds or curr_bond > 0
 
-                        add_bond_action_space_mask[bond_to_form][i][j] = (
-                            (
-                                min(free_electons_vect[i], free_electons_vect[j])
-                                >= delta_bond
-                            )
-                            and formal_charge_ok
-                            and mutability_ok
-                            and prevent_breaking_bonds_constraint_respected
-                        )
+                        add_bond_action_space_mask[bond_to_form][i][j] = (min(free_electons_vect[i],
+                                                                              free_electons_vect[j]) >= delta_bond) \
+                                                                         and formal_charge_ok and mutability_ok and prevent_breaking_bonds_constraint_respected
 
         final_action_space = []
 
         for i in range(4):
-            final_action_space.append(
-                add_bond_action_space_mask[i][
-                    np.triu_indices(parameters.max_heavy_atoms, k=1)
-                ]
-            )
+            final_action_space.append(add_bond_action_space_mask[i][np.triu_indices(parameters.max_heavy_atoms, k=1)])
 
         # Returning the values of the upper triangular matrix
         return np.array(final_action_space).flatten()
@@ -1023,9 +840,7 @@ class ChangeBondActionSpace(ActionSpace):
         return (parameters.max_heavy_atoms * (parameters.max_heavy_atoms - 1) // 2) * 4
 
     def execute_action(self, action_id, parameters, qu_mol_graph):
-        super(ChangeBondActionSpace, self).execute_action(
-            action_id, parameters, qu_mol_graph
-        )
+        super(ChangeBondActionSpace, self).execute_action(action_id, parameters, qu_mol_graph)
 
         i, j = self._action_id_to_atoms_idx(action_id, parameters)
 
@@ -1049,21 +864,9 @@ class ChangeBondActionSpace(ActionSpace):
         curr_bond = qu_mol_graph.get_bond_type_num(i, j)
         new_bond_type = self._action_id_to_bond_to_form(action_id, parameters)
 
-        return (
-            "Change bond between atoms of ids "
-            + str(i)
-            + " ("
-            + qu_mol_graph.get_atom_type(i)
-            + ")"
-            + " and "
-            + str(j)
-            + " ("
-            + qu_mol_graph.get_atom_type(j)
-            + ") from "
-            + str(curr_bond)
-            + " to "
-            + str(new_bond_type)
-        )
+        return "Change bond between atoms of ids " + str(i) + " (" + qu_mol_graph.get_atom_type(
+            i) + ")" + " and " + str(j) + " (" + qu_mol_graph.get_atom_type(j) + ") from " + str(curr_bond) + " to " + \
+               str(new_bond_type)
 
 
 class SubstituteAtomActionSpace(ActionSpace):
@@ -1091,18 +894,13 @@ class SubstituteAtomActionSpace(ActionSpace):
     def get_valid_actions_mask(self, parameters, qu_mol_graph):
 
         # Validity mask initialization
-        substitute_valid_mask = np.full(
-            (parameters.max_heavy_atoms, len(parameters.accepted_atoms)), False
-        )
+        substitute_valid_mask = np.full((parameters.max_heavy_atoms, len(parameters.accepted_atoms)), False)
 
         # Extracting the types of the atoms contained in the molecular graph
         mol_at_types = qu_mol_graph.get_atom_types()
 
         # Allowing specified substitutions
-        for (
-            curr_atom_type,
-            curr_allowed_substitutions,
-        ) in parameters.accepted_substitutions.items():
+        for curr_atom_type, curr_allowed_substitutions in parameters.accepted_substitutions.items():
 
             # Extracting the list of index of atoms of type corresponding to the current type
             curr_at_type_idx = np.nonzero(mol_at_types == curr_atom_type)
@@ -1114,42 +912,28 @@ class SubstituteAtomActionSpace(ActionSpace):
                 if at_type in curr_allowed_substitutions:
                     allowed_subst_idx.append(i)
 
-            substitute_valid_mask[
-                curr_at_type_idx, np.array(allowed_subst_idx).reshape(-1, 1)
-            ] = True
+            substitute_valid_mask[curr_at_type_idx, np.array(allowed_subst_idx).reshape(-1, 1)] = True
 
         # Extracting max valence of accepted atoms and repeating into a matrix
-        max_valence_matrix = np.zeros(
-            (parameters.max_heavy_atoms, len(parameters.accepted_atoms))
-        )
-        max_valence_matrix[: qu_mol_graph.get_n_atoms()] = np.tile(
-            [
-                qu_mol_graph.get_max_valence(at_type)
-                for at_type in parameters.accepted_atoms
-            ],
-            qu_mol_graph.get_n_atoms(),
-        ).reshape(-1, len(parameters.accepted_atoms))
+        max_valence_matrix = np.zeros((parameters.max_heavy_atoms, len(parameters.accepted_atoms)))
+        max_valence_matrix[:qu_mol_graph.get_n_atoms()] = np.tile([qu_mol_graph.get_max_valence(at_type) for at_type in
+                                                                   parameters.accepted_atoms],
+                                                                  qu_mol_graph.get_n_atoms()).reshape(-1, len(
+            parameters.accepted_atoms))
 
         # Extracting explicit valence of defined atom and repeating to match the number of accepted atoms
-        expl_valence_matrix = np.zeros(
-            (parameters.max_heavy_atoms, len(parameters.accepted_atoms))
-        )
-        expl_valence_matrix[: qu_mol_graph.get_n_atoms()] = np.repeat(
-            [
-                qu_mol_graph.get_atom_degree(i, as_multigraph=True)
-                for i in range(qu_mol_graph.get_n_atoms())
-            ],
-            len(parameters.accepted_atoms),
-        ).reshape(-1, len(parameters.accepted_atoms))
+        expl_valence_matrix = np.zeros((parameters.max_heavy_atoms, len(parameters.accepted_atoms)))
+        expl_valence_matrix[:qu_mol_graph.get_n_atoms()] = np.repeat(
+            [qu_mol_graph.get_atom_degree(i, as_multigraph=True) for i in
+             range(qu_mol_graph.get_n_atoms())],
+            len(parameters.accepted_atoms)).reshape(-1, len(parameters.accepted_atoms))
 
         # Discarding valence incompatible substitutions
-        substitute_valid_mask = np.logical_and(
-            substitute_valid_mask,
-            np.subtract(max_valence_matrix, expl_valence_matrix) >= 0,
-        )
+        substitute_valid_mask = np.logical_and(substitute_valid_mask,
+                                               np.subtract(max_valence_matrix, expl_valence_matrix) >= 0)
 
         # Discarding substitution of undefined atoms
-        substitute_valid_mask[qu_mol_graph.get_n_atoms() :] = False
+        substitute_valid_mask[qu_mol_graph.get_n_atoms():] = False
 
         # Discarding substitution of non mutable atoms
         for i in range(qu_mol_graph.get_n_atoms()):
@@ -1162,11 +946,7 @@ class SubstituteAtomActionSpace(ActionSpace):
         return len(parameters.accepted_atoms) * parameters.max_heavy_atoms
 
     def execute_action(self, action_id, parameters, qu_mol_graph):
-        super(SubstituteAtomActionSpace, self).execute_action(
-            action_id, parameters, qu_mol_graph
-        )
-
-        print(self.action_to_str(action_id, parameters, qu_mol_graph))
+        super(SubstituteAtomActionSpace, self).execute_action(action_id, parameters, qu_mol_graph)
 
         at_id = action_id // len(parameters.accepted_atoms)
         new_type = parameters.accepted_atoms[action_id % len(parameters.accepted_atoms)]
@@ -1182,11 +962,5 @@ class SubstituteAtomActionSpace(ActionSpace):
 
     def action_to_str(self, action_id, parameters, qu_mol_graph):
         at_id = action_id // len(parameters.accepted_atoms)
-        return (
-            "Substitute atom of id "
-            + str(at_id)
-            + " and type "
-            + qu_mol_graph.get_atom_type(at_id)
-            + " by "
-            + parameters.accepted_atoms[action_id % len(parameters.accepted_atoms)]
-        )
+        return "Substitute atom of id " + str(at_id) + " and type " + qu_mol_graph.get_atom_type(at_id) + " by " + \
+               parameters.accepted_atoms[action_id % len(parameters.accepted_atoms)]

@@ -1,0 +1,12 @@
+rdkit
+wheel
+cclib==1.7.1
+ipython
+joblib==1.*
+matplotlib==3.*
+networkx==2.*
+numpy==1.*
+pillow
+scipy
+setuptools
+openbabel==3.1.1.1 

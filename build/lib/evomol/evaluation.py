@@ -9,8 +9,7 @@ from os.path import join
 
 import networkx as nx
 import pandas as pd
-
-# from guacamol.common_scoring_functions import IsomerScoringFunction, TanimotoScoringFunction
+from guacamol.common_scoring_functions import IsomerScoringFunction, TanimotoScoringFunction
 from rdkit import Chem
 from rdkit.Chem import Descriptors, AllChem, BondType
 from rdkit.Chem import RDConfig
@@ -22,7 +21,7 @@ from scipy.stats import norm
 
 from evomol.molgraphops.molgraph import MolGraph
 
-sys.path.append(os.path.join(RDConfig.RDContribDir, "SA_Score"))
+sys.path.append(os.path.join(RDConfig.RDContribDir, 'SA_Score'))
 import sascorer
 import numpy as np
 
@@ -105,9 +104,7 @@ class EvaluationStrategyComposant(ABC):
         pass
 
     @abstractmethod
-    def record_ind_score(
-        self, idx, new_total_score, new_scores, new_individual, comput_time
-    ):
+    def record_ind_score(self, idx, new_total_score, new_scores, new_individual, comput_time):
         """
         Updating the scores of the individual at the given index
         :param idx: index
@@ -132,7 +129,9 @@ class EvaluationStrategyComposant(ABC):
         for these scores.
         """
 
-        return {"objective_calls": self.n_calls}
+        return {
+            "objective_calls": self.n_calls
+        }
 
     def disable_calls_count(self):
         """
@@ -189,9 +188,7 @@ class EvaluationStrategy(EvaluationStrategyComposant, ABC):
                 self.scores.append(self.evaluate_individual(ind)[0])
                 self.comput_time.append(time.time() - tstart)
 
-    def record_ind_score(
-        self, idx, new_total_score, new_scores, new_individual, comput_time
-    ):
+    def record_ind_score(self, idx, new_total_score, new_scores, new_individual, comput_time):
         if idx == len(self.scores):
             self.scores.append(None)
             self.comput_time.append(None)
@@ -270,9 +267,8 @@ class ZincNormalizedPLogPEvaluationStrategy(EvaluationStrategy):
         SA = -sascorer.calculateScore(mol_graph)
 
         # cycle score
-        cycle_list = nx.cycle_basis(
-            nx.Graph(Chem.rdmolops.GetAdjacencyMatrix(mol_graph))
-        )
+        cycle_list = nx.cycle_basis(nx.Graph(
+            Chem.rdmolops.GetAdjacencyMatrix(mol_graph)))
         if len(cycle_list) == 0:
             cycle_length = 0
         else:
@@ -353,22 +349,12 @@ class CLScoreEvaluationStrategy(EvaluationStrategy):
 
         # Loading ChEMBL shingles database
         if self.rooted:
-            with open(
-                join(
-                    os.environ["SHINGLE_LIBS"],
-                    "chembl_24_1_shingle_scores_log10_rooted_nchir_min_freq_100.pkl",
-                ),
-                "rb",
-            ) as pyc:
+            with open(join(os.environ["SHINGLE_LIBS"],
+                           "chembl_24_1_shingle_scores_log10_rooted_nchir_min_freq_100.pkl"), "rb") as pyc:
                 self.db_shingles = pickle.load(pyc)
         else:
-            with open(
-                join(
-                    os.environ["SHINGLE_LIBS"],
-                    "chembl_24_1_shingle_scores_log10_nrooted_nchir.pkl",
-                ),
-                "rb",
-            ) as pyc:
+            with open(join(os.environ["SHINGLE_LIBS"],
+                           "chembl_24_1_shingle_scores_log10_nrooted_nchir.pkl"), "rb") as pyc:
                 self.db_shingles = pickle.load(pyc)
 
     def keys(self):
@@ -398,33 +384,11 @@ class CLScoreEvaluationStrategy(EvaluationStrategy):
                     atoms.add(bond.GetEndAtomIdx())
 
                 if self.rooted:
-                    new_shingle = Chem.rdmolfiles.MolFragmentToSmiles(
-                        mol,
-                        list(atoms),
-                        bonds,
-                        0,
-                        0,
-                        False,
-                        False,
-                        atm_idx,
-                        True,
-                        False,
-                        False,
-                    )
+                    new_shingle = Chem.rdmolfiles.MolFragmentToSmiles(mol, list(atoms), bonds, 0, 0,
+                                                                      False, False, atm_idx, True, False, False)
                 else:
-                    new_shingle = Chem.rdmolfiles.MolFragmentToSmiles(
-                        mol,
-                        list(atoms),
-                        bonds,
-                        0,
-                        0,
-                        False,
-                        False,
-                        -1,
-                        True,
-                        False,
-                        False,
-                    )
+                    new_shingle = Chem.rdmolfiles.MolFragmentToSmiles(mol, list(atoms), bonds, 0, 0,
+                                                                      False, False, -1, True, False, False)
 
                 qry_shingles.add(new_shingle)
 
@@ -515,9 +479,7 @@ class NormalizedSAScoreEvaluationStrategy(EvaluationStrategy):
         if individual is None:
             return None, [None]
         else:
-            unnormalized_sascore, _ = self.sascore_evaluation.evaluate_individual(
-                individual
-            )
+            unnormalized_sascore, _ = self.sascore_evaluation.evaluate_individual(individual)
             score = 1 - (unnormalized_sascore - 1) / 9
 
             return score, [score]
@@ -625,14 +587,10 @@ class UnknownGenericCyclicScaffolds(EvaluationStrategy):
         # compute generic scaffold
         mol = Chem.MolFromSmiles(smi)
         try:
-            gscaf = MurckoScaffold.MakeScaffoldGeneric(
-                MurckoScaffold.GetScaffoldForMol(mol)
-            )
+            gscaf = MurckoScaffold.MakeScaffoldGeneric(MurckoScaffold.GetScaffoldForMol(mol))
             smi_scaf = Chem.MolToSmiles(gscaf)
         except:
-            smi_scaf = MurckoScaffold.MurckoScaffoldSmiles(
-                mol=Chem.MolFromSmiles(smi), includeChirality=False
-            )
+            smi_scaf = MurckoScaffold.MurckoScaffoldSmiles(mol=Chem.MolFromSmiles(smi), includeChirality=False)
             mol_scaf = MolGraph(Chem.MolFromSmiles(smi_scaf))
 
             mol_scaf.update_mol_representation()
@@ -692,12 +650,8 @@ class UnknownGenericCyclicScaffolds(EvaluationStrategy):
         molgraph.update_mol_representation()
 
         # computes smiles of rings features and remove unique atoms
-        features = set(
-            [s for s in molgraph.to_aromatic_smiles().split(".") if len(s) > 4]
-        )
-        smi_features = [
-            UnknownGenericCyclicScaffolds.compute_generic_scaffold(f) for f in features
-        ]
+        features = set([s for s in molgraph.to_aromatic_smiles().split(".") if len(s) > 4])
+        smi_features = [UnknownGenericCyclicScaffolds.compute_generic_scaffold(f) for f in features]
 
         return set(smi_features)
 
@@ -705,11 +659,8 @@ class UnknownGenericCyclicScaffolds(EvaluationStrategy):
         super().evaluate_individual(individual, to_replace_idx)
 
         # Extracting generic cyclic scaffolds for input molecule
-        unique_features = set(
-            UnknownGenericCyclicScaffolds.extract_generic_cyclic_scaffolds(
-                individual.to_aromatic_smiles()
-            )
-        )
+        unique_features = set(UnknownGenericCyclicScaffolds.extract_generic_cyclic_scaffolds(
+            individual.to_aromatic_smiles()))
 
         # Counting unknown features
         unknown_count = 0
@@ -778,9 +729,7 @@ class SillyWalksEvaluationStrategy(EvaluationStrategy):
             fp = AllChem.GetMorganFingerprint(mol, self.radius)
             on_bits = fp.GetNonzeroElements().keys()
 
-            silly_bits = [
-                x for x in [self.count_dict.get(str(x)) for x in on_bits] if x is None
-            ]
+            silly_bits = [x for x in [self.count_dict.get(str(x)) for x in on_bits] if x is None]
             score = len(silly_bits) / len(on_bits) if len(on_bits) > 0 else 0
 
         else:
@@ -841,11 +790,8 @@ class RDFiltersEvaluationStrategy(EvaluationStrategy):
         self.rule_list = []
         with open(self.rules_file_name) as json_file:
             self.rule_dict = json.load(json_file)
-        self.rules_list = [
-            x.replace("Rule_", "")
-            for x in self.rule_dict.keys()
-            if x.startswith("Rule") and self.rule_dict[x]
-        ]
+        self.rules_list = [x.replace("Rule_", "") for x in self.rule_dict.keys()
+                           if x.startswith("Rule") and self.rule_dict[x]]
         self._build_rule_list()
 
     def keys(self):
@@ -853,9 +799,7 @@ class RDFiltersEvaluationStrategy(EvaluationStrategy):
 
     def _build_rule_list(self):
         self.rule_df = self.rule_df[self.rule_df.rule_set_name.isin(self.rules_list)]
-        tmp_rule_list = self.rule_df[
-            ["rule_id", "smarts", "max", "description"]
-        ].values.tolist()
+        tmp_rule_list = self.rule_df[["rule_id", "smarts", "max", "description"]].values.tolist()
         for rule_id, smarts, max_val, desc in tmp_rule_list:
             smarts_mol = Chem.MolFromSmarts(smarts)
             if smarts_mol:
@@ -870,24 +814,15 @@ class RDFiltersEvaluationStrategy(EvaluationStrategy):
         if mol is None:
             return 0, [0]
 
-        desc_list = [
-            Descriptors.MolWt(mol),
-            Descriptors.MolLogP(mol),
-            Descriptors.NumHDonors(mol),
-            Descriptors.NumHAcceptors(mol),
-            Descriptors.TPSA(mol),
-            CalcNumRotatableBonds(mol),
-        ]
-        df = pd.DataFrame(
-            [desc_list], columns=["MW", "LogP", "HBD", "HBA", "TPSA", "Rot"]
-        )
-        df_ok = df[
-            df.MW.between(*(self.rule_dict["MW"]))
-            & df.LogP.between(*(self.rule_dict["LogP"]))
-            & df.HBD.between(*(self.rule_dict["HBD"]))
-            & df.HBA.between(*(self.rule_dict["HBA"]))
-            & df.TPSA.between(*(self.rule_dict["TPSA"]))
-        ]
+        desc_list = [Descriptors.MolWt(mol), Descriptors.MolLogP(mol), Descriptors.NumHDonors(mol),
+                     Descriptors.NumHAcceptors(mol), Descriptors.TPSA(mol), CalcNumRotatableBonds(mol)]
+        df = pd.DataFrame([desc_list], columns=[
+            "MW", "LogP", "HBD", "HBA", "TPSA", "Rot"])
+        df_ok = df[df.MW.between(*(self.rule_dict["MW"])) &
+                   df.LogP.between(*(self.rule_dict["LogP"])) &
+                   df.HBD.between(*(self.rule_dict["HBD"])) &
+                   df.HBA.between(*(self.rule_dict["HBA"])) &
+                   df.TPSA.between(*(self.rule_dict["TPSA"]))]
         if len(df_ok) == 0:
             return 0, [0]
         for row in self.rule_list:
@@ -969,15 +904,11 @@ class EvaluationStrategyComposite(EvaluationStrategyComposant):
 
         for strategy in self.evaluation_strategies:
             strategy.compute_record_scores_init_pop(population)
-            comput_times_substrategies.append(
-                strategy.get_population_comput_time_vector()
-            )
+            comput_times_substrategies.append(strategy.get_population_comput_time_vector())
 
         self.comput_time = list(np.array(comput_times_substrategies).sum(axis=0))
 
-    def record_ind_score(
-        self, idx, new_total_score, new_sub_scores, new_individual, comput_time
-    ):
+    def record_ind_score(self, idx, new_total_score, new_sub_scores, new_individual, comput_time):
         """
         Calling corresponding method to contained instances to propagate score values.
         Recording the computation time in the current instance
@@ -1029,13 +960,8 @@ class EvaluationStrategyComposite(EvaluationStrategyComposant):
                 # Note : comput_time is not passed here since it corresponds to the evaluation time of the entire
                 # objective and not the specific time to compute the current sub-objective (btw : information not
                 # stored).
-                ordered_strategy.record_ind_score(
-                    idx,
-                    new_sub_scores[i],
-                    new_sub_scores[i : i + n_keys],
-                    new_individual,
-                    comput_time=None,
-                )
+                ordered_strategy.record_ind_score(idx, new_sub_scores[i], new_sub_scores[i:i + n_keys], new_individual,
+                                                  comput_time=None)
                 i += n_keys
 
     def get_population_scores(self):
@@ -1045,15 +971,10 @@ class EvaluationStrategyComposite(EvaluationStrategyComposant):
 
         # Creating lists of scores all the scores of population for all evaluation strategies
         for i, strategy in enumerate(self.evaluation_strategies):
-            curr_strategy_evaluation, curr_strategy_sub_scores = (
-                strategy.get_population_scores()
-            )
+            curr_strategy_evaluation, curr_strategy_sub_scores = strategy.get_population_scores()
 
             if i == 0:
-                scores = np.full(
-                    (len(self.evaluation_strategies), len(curr_strategy_evaluation)),
-                    np.nan,
-                )
+                scores = np.full((len(self.evaluation_strategies), len(curr_strategy_evaluation)), np.nan)
 
             scores[i] = curr_strategy_evaluation
             sub_scores.extend(curr_strategy_sub_scores)
@@ -1062,9 +983,7 @@ class EvaluationStrategyComposite(EvaluationStrategyComposant):
         for curr_ind_scores in scores.T:
             total_scores.append(self._compute_total_score(curr_ind_scores))
 
-        return np.array(total_scores), np.concatenate(
-            [np.array([total_scores]), np.array(sub_scores)]
-        )
+        return np.array(total_scores), np.concatenate([np.array([total_scores]), np.array(sub_scores)])
 
     def get_population_comput_time_vector(self):
 
@@ -1079,9 +998,7 @@ class EvaluationStrategyComposite(EvaluationStrategyComposant):
         total_scores = []
 
         for strategy in self.evaluation_strategies:
-            curr_total_score, curr_sub_scores = strategy.evaluate_individual(
-                individual, to_replace_idx
-            )
+            curr_total_score, curr_sub_scores = strategy.evaluate_individual(individual, to_replace_idx)
             total_scores.append(curr_total_score)
             sub_scores.extend(curr_sub_scores)
 
@@ -1276,9 +1193,7 @@ class ProductSigmLinEvaluationStrategy(EvaluationStrategyComposite):
         tmp_scores = []
 
         for i, curr_strat_score in enumerate(strat_scores):
-            tmp_scores.append(
-                1 / (1 + exp(self.l[i] * (self.a[i] * curr_strat_score + self.b[i])))
-            )
+            tmp_scores.append(1 / (1 + exp(self.l[i] * (self.a[i] * curr_strat_score + self.b[i]))))
 
         print("TMP scores : " + str(tmp_scores))
 
