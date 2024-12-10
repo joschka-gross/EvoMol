@@ -1,5 +1,5 @@
 import random
-from typing import Callable
+from typing import Callable, Literal
 import numpy as np
 from copy import deepcopy
 
@@ -11,7 +11,7 @@ from .logger import Logger
 
 def replace(
     population: Population,
-    offspring: SmilesList,
+    offspring: Population,
     index: np.ndarray,
 ) -> Population:
     do_replace_mask = np.zeros(len(population.members), dtype=bool)
@@ -23,7 +23,7 @@ def replace(
             new_member = member
         else:
             try:
-                new_member = PopMember(next(itr_offspring))
+                new_member = next(itr_offspring)
             except StopIteration:
                 print("Not enough offspring to replace all members")
                 new_member = member
@@ -39,14 +39,42 @@ def extend(population: Population, offspring: SmilesList) -> Population:
 
 def replace_random(
     population: Population,
-    offspring: SmilesList,
+    offspring: Population,
 ) -> Population:
     if len(offspring) > len(population.members):
-        offspring = random.choices(offspring, k=len(population.members))
+        offspring = offspring.sample(len(population.members))
     index = np.random.choice(
         range(len(population.members)), size=len(offspring), replace=False
     )
     return replace(population, offspring, index)
+
+
+def replace_weighted_random(
+    population: Population,
+    offspring: Population,
+):
+    all_members = population.members + offspring.members
+    scores = np.array([member.score for member in all_members])
+    mean_score = np.mean(scores)
+    if np.allclose(scores, mean_score):
+        weigths = np.ones_like(scores)
+    else:
+        std = np.std(scores)
+        if np.isnan(std):
+            std = 1.0
+        np.clip(std, 1e-6, 1e6)
+        weigths = np.exp((scores - mean_score) / std)
+    new_members = list(
+        np.random.choice(
+            all_members,
+            size=len(population.members),
+            p=weigths / np.sum(weigths),
+        )
+    )
+    return Population(new_members)
+
+
+def insert_best_k(population: Population, offspring: Population) -> Population: ...
 
 
 def run_ga(
@@ -57,10 +85,14 @@ def run_ga(
     evaluator: Callable | None = None,
     generation_depth: int = 3,
     num_generation_tries: int = 10,
+    obejctive: Literal["min", "max"] = "max",
 ):
     if evaluator is None:
-        evaluator = lambda x: 0.0
+        evaluator = lambda x: 1.0
+    if obejctive == "min":
+        evaluator = lambda x: -evaluator(x)
     logger.step(population, step_id=0)
+    population.evaluate(evaluator)
     for step_id in range(nsteps):
         offspring = generate_offspring(
             population,
@@ -69,5 +101,5 @@ def run_ga(
             action_space_depth=generation_depth,
             max_tries_per_member=num_generation_tries,
         )
-        population = replace_random(population, offspring)
+        population = replace_weighted_random(population, offspring)
         logger.step(population, step_id=step_id)

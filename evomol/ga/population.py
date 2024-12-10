@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+import random
 from typing import Callable
+import numpy as np
 from rdkit.Chem.rdFingerprintGenerator import GetMorganGenerator
 from rdkit import Chem
 
@@ -31,6 +33,12 @@ class Population:
     def evaluate(self, evaluator: Callable[[str], float], evaluator_key: str = "score"):
         for member in filter(lambda smi: evaluator_key not in smi, self.members):
             member.set(evaluator_key, evaluator(member.str))
+
+    def sample(self, n: int) -> "Population":
+        return Population(random.sample(self.members, n))
+
+    def scores(self):
+        return np.array([member.score for member in self.members])
 
 
 def pop_minus(pop1: Population, pop2: Population, method="tanimoto"):

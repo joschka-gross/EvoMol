@@ -1,6 +1,6 @@
 from typing import Any
 
-from evomol.ga.population import Population
+from .population import Population
 
 
 class Logger:

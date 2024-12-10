@@ -11,6 +11,7 @@ from ..molgraphops.actionspace import ActionSpace
 class PopMember:
     smiles: str
     values: dict[str, float] = field(default_factory=dict)
+    is_values_frozen: bool = True
 
     def __post_init__(self):
         assert isinstance(self.smiles, str)
@@ -26,8 +27,14 @@ class PopMember:
     def __contains__(self, key: str) -> bool:
         return key in self.values
 
-    def set(self, key: str, value: float) -> None:
+    def set(self, key: str, value: float) -> bool:
+        if self.is_values_frozen and key in self.values:
+            return False
         self.values[key] = value
+        return True
+
+    def get(self, *args, **kwargs) -> float:
+        return self.values.get(*args, **kwargs)
 
     @property
     def str(self):

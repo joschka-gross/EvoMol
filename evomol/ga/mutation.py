@@ -1,11 +1,12 @@
+import logging
 from typing import Callable
 from .population import Population
-from .data import SmilesList
+from .data import PopMember, SmilesList
 import random
 from joblib import Parallel, delayed
 
 from ..molgraphops.molgraph import MolGraph, MolGraphBuilder
-from evomol.molgraphops.exploration import RandomActionTypeSelectionStrategy
+from ..molgraphops.exploration import RandomActionTypeSelectionStrategy
 from .data import ParametrizedActionSpace
 
 random_generation = RandomActionTypeSelectionStrategy()
@@ -24,7 +25,7 @@ def generate_offspring(
     max_offspring_per_member: int = 3,
     action_space_depth: int = 3,
     num_processes: int = 1,
-) -> SmilesList:
+) -> Population:
     action_space, params = param_action_space
 
     def generate_neighbours(member):
@@ -33,10 +34,16 @@ def generate_offspring(
         offspring = []
         for _ in range(max_tries_per_member):
             try:
-                mutated, _ = random_generation.generate_neighbour(
+                mutated_smiles, _ = random_generation.generate_neighbour(
                     builder, action_space_depth, None
                 )
             except IndexError:
+                continue
+            mutated = PopMember(mutated_smiles)
+            try:
+                mutated.set("score", evaluator(mutated_smiles))
+            except Exception as e:
+                logging.warning(f"Failed to evaluate mutated member: {e}")
                 continue
             offspring.append(mutated)
             if len(offspring) >= max_offspring_per_member:
@@ -48,4 +55,4 @@ def generate_offspring(
         for member in select_for_mutation(population)
     )
     offspring = [item for sublist in offspring for item in sublist]
-    return offspring
+    return Population(offspring)
