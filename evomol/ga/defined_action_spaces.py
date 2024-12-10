@@ -11,6 +11,7 @@ action_space, params = generic_action_space(
     move_group=True,
     change_bond_prevent_breaking_creating_bonds=False,
     cut_insert=True,
+    substitute_atoms_with_non_carbon_neighbors=False,
 )
 params.accepted_substitutions = {
     "Cl": ["F", "O", "Br", "N"],
@@ -31,6 +32,7 @@ action_space, params = generic_action_space(
     move_group=True,
     change_bond_prevent_breaking_creating_bonds=True,
     cut_insert=False,
+    substitute_atoms_with_non_carbon_neighbors=False,
 )
 params.accepted_substitutions = {
     "Cl": ["F", "O", "Br", "N"],

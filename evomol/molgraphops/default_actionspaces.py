@@ -1,11 +1,30 @@
-from .actionspace import ActionSpace, AddAtomActionSpace, SubstituteAtomActionSpace, \
-    RemoveAtomActionSpace, ChangeBondActionSpace, CutAtomV2ActionSpace, InsertCarbonAtomV2ActionSpace, \
-    MoveFunctionalGroupActionSpace, RemoveGroupActionSpace
+from .actionspace import (
+    ActionSpace,
+    AddAtomActionSpace,
+    SubstituteAtomActionSpace,
+    RemoveAtomActionSpace,
+    ChangeBondActionSpace,
+    CutAtomV2ActionSpace,
+    InsertCarbonAtomV2ActionSpace,
+    MoveFunctionalGroupActionSpace,
+    RemoveGroupActionSpace,
+)
 
 
-def generic_action_space(atom_symbols_list, max_heavy_atoms, append_atom=True, remove_atom=True, change_bond=True,
-                         change_bond_prevent_breaking_creating_bonds=False, substitution=True, cut_insert=True,
-                         move_group=True, remove_group=False, remove_group_only_remove_smallest_group=True):
+def generic_action_space(
+    atom_symbols_list,
+    max_heavy_atoms,
+    append_atom=True,
+    remove_atom=True,
+    change_bond=True,
+    change_bond_prevent_breaking_creating_bonds=False,
+    substitution=True,
+    cut_insert=True,
+    move_group=True,
+    remove_group=False,
+    remove_group_only_remove_smallest_group=True,
+    substitute_atoms_with_non_carbon_neighbors=False,
+):
     """
     Building the action space for given atom list and max molecular size
     :param atom_symbols_list: list of atoms symbols
@@ -36,38 +55,54 @@ def generic_action_space(atom_symbols_list, max_heavy_atoms, append_atom=True, r
                     curr_atom_subst.append(other_accepted_atom)
             accepted_substitutions[accepted_atom] = curr_atom_subst
 
-    parameters = ActionSpace.ActionSpaceParameters(max_heavy_atoms=max_heavy_atoms,
-                                                   accepted_atoms=accepted_atoms,
-                                                   accepted_substitutions=accepted_substitutions)
+    parameters = ActionSpace.ActionSpaceParameters(
+        max_heavy_atoms=max_heavy_atoms,
+        accepted_atoms=accepted_atoms,
+        accepted_substitutions=accepted_substitutions,
+        substitute_atoms_with_non_carbon_neighbors=substitute_atoms_with_non_carbon_neighbors,
+    )
 
     action_spaces = []
 
     if append_atom:
-        action_spaces.append(AddAtomActionSpace(keep_connected=True, check_validity=False))
+        action_spaces.append(
+            AddAtomActionSpace(keep_connected=True, check_validity=False)
+        )
 
     if remove_atom:
-        action_spaces.append(RemoveAtomActionSpace(keep_connected=True, check_validity=False))
+        action_spaces.append(
+            RemoveAtomActionSpace(keep_connected=True, check_validity=False)
+        )
 
     if change_bond:
-        action_spaces.append(ChangeBondActionSpace(keep_connected=True, check_validity=True,
-                                                   prevent_removing_creating_bonds=change_bond_prevent_breaking_creating_bonds))
+        action_spaces.append(
+            ChangeBondActionSpace(
+                keep_connected=True,
+                check_validity=True,
+                prevent_removing_creating_bonds=change_bond_prevent_breaking_creating_bonds,
+            )
+        )
 
     if substitution:
         action_spaces.append(SubstituteAtomActionSpace(check_validity=False))
 
     if cut_insert:
-        action_spaces.extend([
-            CutAtomV2ActionSpace(check_validity=False),
-            InsertCarbonAtomV2ActionSpace(check_validity=False)
-        ])
+        action_spaces.extend(
+            [
+                CutAtomV2ActionSpace(check_validity=False),
+                InsertCarbonAtomV2ActionSpace(check_validity=False),
+            ]
+        )
 
     if move_group:
         action_spaces.append(MoveFunctionalGroupActionSpace(check_validity=False))
 
     if remove_group:
-        action_spaces.append(RemoveGroupActionSpace(check_validity=False,
-                                                    only_remove_smallest_group=remove_group_only_remove_smallest_group))
+        action_spaces.append(
+            RemoveGroupActionSpace(
+                check_validity=False,
+                only_remove_smallest_group=remove_group_only_remove_smallest_group,
+            )
+        )
 
     return action_spaces, parameters
-
-

@@ -28,11 +28,15 @@ class ActionSpace(ABC):
             accepted_atoms=None,
             accepted_structures=None,
             accepted_substitutions=None,
+            substitute_atoms_with_non_carbon_neighbors=False,
         ):
             self.max_heavy_atoms = max_heavy_atoms
             self.accepted_atoms = accepted_atoms
             self.accepted_structures = accepted_structures
             self.accepted_substitutions = accepted_substitutions
+            self.substitute_atoms_with_non_carbon_neighbors = (
+                substitute_atoms_with_non_carbon_neighbors
+            )
 
     def __init__(self, check_validity=True):
         self.check_validity = check_validity
@@ -1155,6 +1159,13 @@ class SubstituteAtomActionSpace(ActionSpace):
         for i in range(qu_mol_graph.get_n_atoms()):
             if not qu_mol_graph.get_atom_mutability(i):
                 substitute_valid_mask[i] = False
+
+        # Discarding substitution of atoms with non-carbon neighbors
+        if not parameters.substitute_atoms_with_non_carbon_neighbors:
+            for i in range(qu_mol_graph.get_n_atoms()):
+                neighbor_elements = qu_mol_graph.get_neighbor_elements(i)
+                if any([el != "C" for el in neighbor_elements]):
+                    substitute_valid_mask[i] = False
 
         return substitute_valid_mask.reshape((-1,))
 

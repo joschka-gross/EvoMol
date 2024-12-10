@@ -15,7 +15,9 @@ from rdkit.Chem.rdmolops import GetAdjacencyMatrix, SanitizeMol
 
 class MolGraph:
 
-    def __init__(self, init_state=None, sanitize_mol=False, mutability=True, sulfur_valence=6):
+    def __init__(
+        self, init_state=None, sanitize_mol=False, mutability=True, sulfur_valence=6
+    ):
         """
         Constructor of the QuMolGraph class.
         If a rdchem.Mol object is given, it becomes the initial state of the molecular graph
@@ -108,7 +110,9 @@ class MolGraph:
         Returning a deep copy of the current instance
         :return:
         """
-        new_qumol_graph = MolGraph(sanitize_mol=self.sanitize_mol, sulfur_valence=self.sulfur_valence)
+        new_qumol_graph = MolGraph(
+            sanitize_mol=self.sanitize_mol, sulfur_valence=self.sulfur_valence
+        )
         new_qumol_graph.n_modifications = self.n_modifications
         new_qumol_graph.mol_graph = RWMol(self.mol_graph, True)
         new_qumol_graph.update_mol_representation()
@@ -166,7 +170,9 @@ class MolGraph:
         """
 
         # Changing atomic number
-        self.mol_graph.GetAtomWithIdx(id).SetAtomicNum(GetPeriodicTable().GetAtomicNumber(new_at_type))
+        self.mol_graph.GetAtomWithIdx(id).SetAtomicNum(
+            GetPeriodicTable().GetAtomicNumber(new_at_type)
+        )
 
         # Setting formal charge to 0
         self.mol_graph.GetAtomWithIdx(id).SetFormalCharge(0)
@@ -351,7 +357,9 @@ class MolGraph:
         if atom_type == "S":
             return self.sulfur_valence
         else:
-            return GetPeriodicTable().GetDefaultValence(GetPeriodicTable().GetAtomicNumber(atom_type))
+            return GetPeriodicTable().GetDefaultValence(
+                GetPeriodicTable().GetAtomicNumber(atom_type)
+            )
 
     def _get_n_free_electrons(self, at_idx):
         """
@@ -360,7 +368,8 @@ class MolGraph:
         :return:
         """
         return self.get_max_valence(
-            self.mol_graph.GetAtomWithIdx(at_idx).GetSymbol()) - self._get_expl_valence(at_idx)
+            self.mol_graph.GetAtomWithIdx(at_idx).GetSymbol()
+        ) - self._get_expl_valence(at_idx)
 
     def get_free_electrons_vector(self):
         """
@@ -386,6 +395,15 @@ class MolGraph:
         :return:
         """
         return self.mol_graph.GetAtomWithIdx(int(at_idx)).GetSymbol()
+
+    def get_neighbor_elements(self, at_idx):
+        """
+        Returning the list of elements of the neighbors of the atom of given index
+        :param at_idx:
+        :return:
+        """
+        neighbors = self.mol_graph.GetAtomWithIdx(int(at_idx)).GetNeighbors()
+        return [neighbor.GetSymbol() for neighbor in neighbors]
 
     def get_atom_types(self):
         """
@@ -436,7 +454,12 @@ class MolGraph:
         :param at2_idx:
         :return:
         """
-        return min(self._get_n_free_electrons(at1_idx), self._get_n_free_electrons(at2_idx)) > 0
+        return (
+            min(
+                self._get_n_free_electrons(at1_idx), self._get_n_free_electrons(at2_idx)
+            )
+            > 0
+        )
 
     def to_smiles(self):
         """
@@ -446,7 +469,11 @@ class MolGraph:
         return MolToSmiles(self.mol_graph)
 
     def to_aromatic_smiles(self):
-        return MolToSmiles(MolFromSmiles(MolToSmiles(MolGraph(MolFromSmiles(self.to_smiles())).mol_graph)))
+        return MolToSmiles(
+            MolFromSmiles(
+                MolToSmiles(MolGraph(MolFromSmiles(self.to_smiles())).mol_graph)
+            )
+        )
         # return MolToSmiles(MolFromSmiles(self.to_smiles()))
 
     def export_mol(self):
@@ -467,7 +494,9 @@ class MolGraph:
         # Setting the ids as a property if requested
         if at_idx:
             for idx in range(atoms):
-                mol.GetAtomWithIdx(idx).SetProp('molAtomMapNumber', str(mol.GetAtomWithIdx(idx).GetIdx()))
+                mol.GetAtomWithIdx(idx).SetProp(
+                    "molAtomMapNumber", str(mol.GetAtomWithIdx(idx).GetIdx())
+                )
 
         # Computing coordinates and making sure the properties are computed
         Compute2DCoords(mol)
@@ -552,8 +581,9 @@ class MolGraphBuilder:
         Returning the list of valid actions for the given key
         """
 
-        return self.action_spaces_d[action_space_k].get_valid_actions_mask(self.parameters,
-                                                                           self.qu_mol_graph)
+        return self.action_spaces_d[action_space_k].get_valid_actions_mask(
+            self.parameters, self.qu_mol_graph
+        )
 
     def get_action_spaces_masks(self):
         """
@@ -565,8 +595,9 @@ class MolGraphBuilder:
         action_spaces_masks_d = {}
 
         for action_space_k, action_space in self.action_spaces_d.items():
-            action_spaces_masks_d[action_space_k] = action_space.get_valid_actions_mask(self.parameters,
-                                                                                        self.qu_mol_graph)
+            action_spaces_masks_d[action_space_k] = action_space.get_valid_actions_mask(
+                self.parameters, self.qu_mol_graph
+            )
 
         return action_spaces_masks_d
 
@@ -575,8 +606,9 @@ class MolGraphBuilder:
         Returning a short string giving information about the context of the given action
         """
 
-        return self.action_spaces_d[action_coords[0]].get_action_expl(action_coords[1], self.parameters,
-                                                                      self.qu_mol_graph)
+        return self.action_spaces_d[action_coords[0]].get_action_expl(
+            action_coords[1], self.parameters, self.qu_mol_graph
+        )
 
     def get_action_spaces_sizes(self):
         """
@@ -588,8 +620,9 @@ class MolGraphBuilder:
         action_spaces_sizes_d = {}
 
         for action_space_k, action_space in self.action_spaces_d.items():
-            action_spaces_sizes_d[action_space_k] = action_space.get_action_space_size(self.parameters,
-                                                                                       self.qu_mol_graph)
+            action_spaces_sizes_d[action_space_k] = action_space.get_action_space_size(
+                self.parameters, self.qu_mol_graph
+            )
 
         return action_spaces_sizes_d
 
@@ -602,7 +635,9 @@ class MolGraphBuilder:
         :return:
         """
 
-        return self.action_spaces_d[action_coord[0]].action_to_str(action_coord[1], self.parameters, self.qu_mol_graph)
+        return self.action_spaces_d[action_coord[0]].action_to_str(
+            action_coord[1], self.parameters, self.qu_mol_graph
+        )
 
     def _execute_action(self, action_coord):
         """
@@ -612,7 +647,9 @@ class MolGraphBuilder:
         :param action_coord:
         :return:
         """
-        return self.action_spaces_d[action_coord[0]].execute_action(action_coord[1], self.parameters, self.qu_mol_graph)
+        return self.action_spaces_d[action_coord[0]].execute_action(
+            action_coord[1], self.parameters, self.qu_mol_graph
+        )
 
     def _extract_valid_actions_and_weights(self, action_weights):
         """
@@ -627,23 +664,41 @@ class MolGraphBuilder:
         valid_actions_weights = []
 
         # Iterating over all the action spaces
-        for curr_action_space_type_id, curr_action_space in self.action_spaces_d.items():
+        for (
+            curr_action_space_type_id,
+            curr_action_space,
+        ) in self.action_spaces_d.items():
             # Extracting the the size of the current action space
-            curr_action_space_size = curr_action_space.get_action_space_size(self.parameters, self.qu_mol_graph)
+            curr_action_space_size = curr_action_space.get_action_space_size(
+                self.parameters, self.qu_mol_graph
+            )
 
             # Computing the mask of valid actions in the current action space
-            curr_valid_action_space_mask = curr_action_space.get_valid_actions_mask(self.parameters,
-                                                                                    self.qu_mol_graph)
+            curr_valid_action_space_mask = curr_action_space.get_valid_actions_mask(
+                self.parameters, self.qu_mol_graph
+            )
 
             # Generating a vector containing the coordinates of all the actions of the current action space
-            curr_action_coordinates = np.array((np.full((curr_action_space_size,), curr_action_space_type_id),
-                                                np.arange(curr_action_space_size)), dtype=np.object).T
+            curr_action_coordinates = np.array(
+                (
+                    np.full((curr_action_space_size,), curr_action_space_type_id),
+                    np.arange(curr_action_space_size),
+                ),
+                dtype=np.object,
+            ).T
 
             # Recording the set of valid action coordinates and their associated probabilistic weights for the
             # current action space
-            valid_actions_coordinates.extend(list(np.array(curr_action_coordinates[curr_valid_action_space_mask])))
+            valid_actions_coordinates.extend(
+                list(np.array(curr_action_coordinates[curr_valid_action_space_mask]))
+            )
             valid_actions_weights.extend(
-                np.array(action_weights[curr_action_space_type_id][curr_valid_action_space_mask]))
+                np.array(
+                    action_weights[curr_action_space_type_id][
+                        curr_valid_action_space_mask
+                    ]
+                )
+            )
 
         return valid_actions_coordinates, valid_actions_weights
 
