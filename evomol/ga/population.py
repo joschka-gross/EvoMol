@@ -80,6 +80,7 @@ def compare_generated_to_reference(generated: Population, reference_mols):
     generated_with_similar = []
     inchilabels = []
     similarities = []
+    scores = []
     for j, (member, similar_mol) in enumerate(zip(generated.members, msm)):
         mol_gen = member.rdkit_mol
         generated_with_similar.extend([mol_gen, similar_mol])
@@ -89,4 +90,5 @@ def compare_generated_to_reference(generated: Population, reference_mols):
         )
         sim = f"{j} | Tanimoto sim: {sim:.2f}"
         similarities.extend([sim, ""])
-    return generated_with_similar, inchilabels, similarities
+        scores.extend([str(member.score), ""])
+    return generated_with_similar, inchilabels, similarities, scores
