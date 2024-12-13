@@ -13,6 +13,9 @@ class PopMember:
     values: dict[str, float] = field(default_factory=dict)
     is_values_frozen: bool = True
 
+    def __hash__(self):
+        return hash(self.smiles)
+
     def __post_init__(self):
         assert isinstance(self.smiles, str)
 
