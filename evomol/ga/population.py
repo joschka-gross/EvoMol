@@ -40,6 +40,14 @@ class Population:
     def scores(self):
         return np.array([member.score for member in self.members])
 
+    def extend(self, other: "Population") -> None:
+        '''
+        Extend the population with the members of another population.\n
+        Args:
+            other (Population): The population to extend with.
+        '''
+        self.members.extend(other.members)
+
 
 def pop_minus(pop1: Population, pop2: Population, method="tanimoto"):
     if method == "inchi":

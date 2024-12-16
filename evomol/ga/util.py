@@ -22,6 +22,9 @@ def find_most_similar(mol: Chem.Mol, reference: list[Chem.Mol]):
 
 
 def has_close_match(mol: Chem.Mol, reference: list[Chem.Mol]):
+    if(len(reference) == 0):
+        return False
+    
     fp = morgan_fp_generator.GetFingerprint(mol)
     reference_fps = [morgan_fp_generator.GetFingerprint(m) for m in reference]
     similarities = [tanimoto_similarity(fp, ref_fp) for ref_fp in reference_fps]
