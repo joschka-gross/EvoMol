@@ -50,6 +50,17 @@ class Population:
 
 
 def pop_minus(pop1: Population, pop2: Population, method="tanimoto"):
+    '''
+        Returns a new population with the members of pop1 that are not in pop2.
+
+        Args:
+            pop1 (Population): The population to subtract from.
+            pop2 (Population): The population to subtract.
+            method (str): The method to use for comparison. Can be "inchi" or "tanimoto".
+        
+        Returns:
+            Population: The new population with unique samples.
+    '''
     if method == "inchi":
         inchi1 = [to_inchi_key(member.rdkit_mol) for member in pop1.members]
         inchi2 = set([to_inchi_key(member) for member in pop2.members])
@@ -72,6 +83,15 @@ def pop_minus(pop1: Population, pop2: Population, method="tanimoto"):
 
 
 def pop_join(*pops: Population):
+    '''
+        Join multiple populations into a single population.
+
+        Args:
+            *pops (Population): The populations to join.
+        
+        Returns:
+            Population: The new population with all members from the input populations.
+    '''
     all_smiles = []
     if isinstance(pops[0], list):
         pops = pops[0]
